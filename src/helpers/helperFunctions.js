@@ -1,5 +1,7 @@
 import algosdk, { encodeUint64 } from "algosdk";
 import axios from "axios";
+import createCompany from "../contracts/createCompany.js";
+import clear from "../contracts/clear.js";
 
 /**
  *
@@ -88,4 +90,77 @@ export function respondToServer(payloadData, cb) {
 	});
 	console.log("=== JOB RESPONDED ===");
 	return;
+}
+
+async function compileProgram(client, programSource) {
+	let encoder = new TextEncoder();
+	let programBytes = encoder.encode(programSource);
+	let compileResponse = await client.compile(programBytes).do();
+	let compiledBytes = new Uint8Array(Buffer.from(compileResponse.result, "base64"));
+	return compiledBytes;
+}
+
+export async function deployCompany(algoClient, account) {
+	console.log("=== DEPLOY COMPANY CONTRACT ===");
+	try {
+		// const algosdk = require("algosdk");
+		// const baseServer = "https://testnet-algorand.api.purestake.io/ps2";
+		// const port = "";
+		// const token = { "X-API-Key": "y6oxRqf5Ck3WHTcWqKd2y5jxZqB16lHY7XJ5s0WV" };
+		// const algodClient = new algosdk.Algodv2(token, baseServer, port);
+		// let params = await algodClient.getTransactionParams().do();
+		// const senderSeed =
+		// 	"salt duck brain humble awesome clown short iron inherit ugly spatial choose tragic junk require truth find young expand chaos drift whip year about advance";
+
+		let senderAccount = algosdk.mnemonicToSecretKey(process.env.MNEMONIC);
+		let params = await algoClient.getTransactionParams().do();
+		let sender = account.addr;
+		let counterProgram = await compileProgram(algoClient, createCompany);
+		let clearProgram = await compileProgram(algoClient, clear);
+		let onComplete = algosdk.OnApplicationComplete.NoOpOC;
+
+		let localInts = 0;
+		let localBytes = 0;
+		let globalInts = 10;
+		let globalBytes = 10;
+
+		let accounts = undefined;
+		let foreignApps = undefined;
+		let foreignAssets = undefined;
+		let appAdmin = new algosdk.decodeAddress(sender);
+		let appArgs = [];
+		let amount = 100000;
+
+		appArgs.push(appAdmin.publicKey);
+
+		let deployContract = algosdk.makeApplicationCreateTxn(
+			sender,
+			params,
+			onComplete,
+			counterProgram,
+			clearProgram,
+			localInts,
+			localBytes,
+			globalInts,
+			globalBytes,
+			appArgs,
+			accounts,
+			foreignApps,
+			foreignAssets
+		);
+		let signedTxn = deployContract.signTxn(senderAccount.sk);
+
+		// Submit the transaction
+		let tx = await algoClient.sendRawTransaction(signedTxn).do();
+		let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 4);
+		let transactionResponse = await algoClient.pendingTransactionInformation(tx.txId).do();
+		let appId = transactionResponse["application-index"];
+
+		// Print the completed transaction and new ID
+		console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+		console.log("The application ID is: " + appId);
+	} catch (err) {
+		console.log("err", err);
+	}
+	process.exit();
 }
