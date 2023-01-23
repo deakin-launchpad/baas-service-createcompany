@@ -114,7 +114,7 @@ function EncodeBytes(utf8String) {
 	return enc.encode(utf8String);
 }
 
-export async function deployCompany(algoClient, account, data, cb) {
+export async function deployCompany(algoClient, account, data) {
 	console.log("=== DEPLOY COMPANY CONTRACT ===");
 	try {
 		let senderAccount = algosdk.mnemonicToSecretKey(process.env.MNEMONIC);
@@ -167,7 +167,7 @@ export async function deployCompany(algoClient, account, data, cb) {
 		console.log("The application ID is: " + appId);
 		return appId;
 	} catch (err) {
-		cb(err);
+		console.log(err);
 	}
 	process.exit();
 }
