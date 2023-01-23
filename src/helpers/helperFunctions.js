@@ -77,14 +77,23 @@ export async function sendTransaction(algoClient, signedTx, txnId, cb) {
  * @param {Object} payloadData
  * @param {any} cb
  */
-export function respondToServer(payloadData, cb) {
+export function respondToServer(payloadData, data, cb) {
 	console.log("=== RESPOND TO SERVER ===");
 	let service = payloadData;
 	let destination = service.datashopServerAddress + "/api/job/updateJob";
-	let lambdaInput = {
-		insightFileURL: service.dataFileURL,
-		jobid: service.jobID,
-	};
+	let lambdaInput;
+	if (data) {
+		lambdaInput = {
+			insightFileURL: service.dataFileURL,
+			jobid: service.jobID,
+			returnData: data,
+		};
+	} else {
+		lambdaInput = {
+			insightFileURL: service.dataFileURL,
+			jobid: service.jobID,
+		};
+	}
 	axios.put(destination, lambdaInput).catch((e) => {
 		cb(e);
 	});
@@ -100,35 +109,12 @@ async function compileProgram(client, programSource) {
 	return compiledBytes;
 }
 
-function bigIntToUint8Array(bn) {
-	var hex = BigInt(bn.toString()).toString(16);
-	if (hex.length % 2) {
-		hex = "0" + hex;
-	}
-
-	var len = hex.length / 2;
-	var u8 = new Uint8Array(len);
-
-	var i = 0;
-	var j = 0;
-	while (i < len) {
-		u8[i] = parseInt(hex.slice(j, j + 2), 16);
-		i += 1;
-		j += 2;
-	}
-
-	return u8;
-}
-
-function EncodeUint(intOrString) {
-	return bigIntToUint8Array(intOrString);
-}
 function EncodeBytes(utf8String) {
 	let enc = new TextEncoder();
 	return enc.encode(utf8String);
 }
 
-export async function deployCompany(algoClient, account, data) {
+export async function deployCompany(algoClient, account, data, cb) {
 	console.log("=== DEPLOY COMPANY CONTRACT ===");
 	try {
 		let senderAccount = algosdk.mnemonicToSecretKey(process.env.MNEMONIC);
@@ -183,8 +169,9 @@ export async function deployCompany(algoClient, account, data) {
 		// Print the completed transaction and new ID
 		console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
 		console.log("The application ID is: " + appId);
+		return appId;
 	} catch (err) {
-		console.log("err", err);
+		cb(err);
 	}
 	process.exit();
 }

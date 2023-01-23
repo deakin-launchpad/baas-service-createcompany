@@ -22,13 +22,11 @@ const createCompany = (payloadData, callback) => {
 			cb();
 		},
 		deployCompany: async (cb) => {
-			appId = await deployCompany(algoClient, account, data);
-			if (!appId) return cb(ERROR.APP_ERROR);
-			cb();
+			appId = await deployCompany(algoClient, account, data, cb);
 		},
-		// response: (cb) => {
-		// 	respondToServer(appId, cb);
-		// },
+		response: (cb) => {
+			respondToServer(payloadData, appId, cb);
+		},
 	};
 
 	async.series(tasks, (err, result) => {
