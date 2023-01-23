@@ -134,14 +134,12 @@ export async function deployCompany(algoClient, account, data, cb) {
 		let foreignAssets = undefined;
 		let appAdmin = new algosdk.decodeAddress(sender);
 		let appArgs = [];
-		appArgs.push(
-			EncodeBytes(data.companyName),
-			EncodeBytes(data.directorsWallets.directorA),
-			EncodeBytes(data.directorsWallets.directorB),
-			EncodeBytes(data.directorsWallets.directorC)
-		);
+		appArgs.push(EncodeBytes(data.companyName));
 
-		// appArgs.push(appAdmin.publicKey);
+		for (const property in data.directorsWallets) {
+			appArgs.push(EncodeBytes(data.directorsWallets[property]));
+		}
+		console.log(appArgs);
 
 		let deployContract = algosdk.makeApplicationCreateTxn(
 			sender,
