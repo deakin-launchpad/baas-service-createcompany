@@ -100,18 +100,37 @@ async function compileProgram(client, programSource) {
 	return compiledBytes;
 }
 
-export async function deployCompany(algoClient, account) {
+function bigIntToUint8Array(bn) {
+	var hex = BigInt(bn.toString()).toString(16);
+	if (hex.length % 2) {
+		hex = "0" + hex;
+	}
+
+	var len = hex.length / 2;
+	var u8 = new Uint8Array(len);
+
+	var i = 0;
+	var j = 0;
+	while (i < len) {
+		u8[i] = parseInt(hex.slice(j, j + 2), 16);
+		i += 1;
+		j += 2;
+	}
+
+	return u8;
+}
+
+function EncodeUint(intOrString) {
+	return bigIntToUint8Array(intOrString);
+}
+function EncodeBytes(utf8String) {
+	let enc = new TextEncoder();
+	return enc.encode(utf8String);
+}
+
+export async function deployCompany(algoClient, account, data) {
 	console.log("=== DEPLOY COMPANY CONTRACT ===");
 	try {
-		// const algosdk = require("algosdk");
-		// const baseServer = "https://testnet-algorand.api.purestake.io/ps2";
-		// const port = "";
-		// const token = { "X-API-Key": "y6oxRqf5Ck3WHTcWqKd2y5jxZqB16lHY7XJ5s0WV" };
-		// const algodClient = new algosdk.Algodv2(token, baseServer, port);
-		// let params = await algodClient.getTransactionParams().do();
-		// const senderSeed =
-		// 	"salt duck brain humble awesome clown short iron inherit ugly spatial choose tragic junk require truth find young expand chaos drift whip year about advance";
-
 		let senderAccount = algosdk.mnemonicToSecretKey(process.env.MNEMONIC);
 		let params = await algoClient.getTransactionParams().do();
 		let sender = account.addr;
@@ -129,9 +148,14 @@ export async function deployCompany(algoClient, account) {
 		let foreignAssets = undefined;
 		let appAdmin = new algosdk.decodeAddress(sender);
 		let appArgs = [];
-		let amount = 100000;
+		appArgs.push(
+			EncodeBytes(data.companyName),
+			EncodeBytes(data.directorsWallets.directorA),
+			EncodeBytes(data.directorsWallets.directorB),
+			EncodeBytes(data.directorsWallets.directorC)
+		);
 
-		appArgs.push(appAdmin.publicKey);
+		// appArgs.push(appAdmin.publicKey);
 
 		let deployContract = algosdk.makeApplicationCreateTxn(
 			sender,

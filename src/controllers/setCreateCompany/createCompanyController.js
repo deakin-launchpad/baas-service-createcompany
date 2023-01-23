@@ -1,7 +1,7 @@
 import async from "async";
 import UniversalFunctions from "../../utils/universalFunctions.js";
 const ERROR = UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR;
-import { connectToAlgorand, getBlockchainAccount, deployCompany } from "../../helpers/helperFunctions.js";
+import { connectToAlgorand, getBlockchainAccount, deployCompany, respondToServer } from "../../helpers/helperFunctions.js";
 
 const createCompany = (payloadData, callback) => {
 	const data = JSON.parse(payloadData.dataFileURL.json);
@@ -22,10 +22,13 @@ const createCompany = (payloadData, callback) => {
 			cb();
 		},
 		deployCompany: async (cb) => {
-			appId = await deployCompany(algoClient, account);
+			appId = await deployCompany(algoClient, account, data);
 			if (!appId) return cb(ERROR.APP_ERROR);
 			cb();
 		},
+		// response: (cb) => {
+		// 	respondToServer(appId, cb);
+		// },
 	};
 
 	async.series(tasks, (err, result) => {
