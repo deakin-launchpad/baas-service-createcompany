@@ -165,6 +165,7 @@ export async function deployCompany(algoClient, account, data) {
 		// Print the completed transaction and new ID
 		console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
 		console.log("The application ID is: " + appId);
+		appId = "The application ID is: " + appId + ` Visit https://testnet.algoexplorer.io/application/${appId} to see the company`;
 		return appId;
 	} catch (err) {
 		console.log(err);
