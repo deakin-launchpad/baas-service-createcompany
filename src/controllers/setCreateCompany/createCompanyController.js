@@ -27,6 +27,7 @@ const createCompany = (payloadData, callback) => {
 		},
 		response: (cb) => {
 			respondToServer(payloadData, appId, cb);
+			cb();
 		},
 	};
 
