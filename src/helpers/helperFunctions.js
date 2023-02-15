@@ -1,4 +1,4 @@
-import algosdk, { encodeUint64, makeBasicAccountTransactionSigner } from "algosdk";
+import algosdk, { decodeAddress, encodeAddress, encodeUint64, isValidAddress, makeBasicAccountTransactionSigner } from "algosdk";
 import axios from "axios";
 import createCompany from "../contracts/createCompany.js";
 import clearCompany from "../contracts/clearCompany.js";
@@ -139,8 +139,8 @@ export async function deployVault(algoClient, account, data) {
 
 		let localInts = 0;
 		let localBytes = 0;
-		let globalInts = 2;
-		let globalBytes = 3;
+		let globalInts = 32;
+		let globalBytes = 32;
 
 		let accounts = undefined;
 		let foreignApps = undefined;
@@ -197,18 +197,16 @@ export async function deployCompany(algoClient, account, data) {
 
 		let localInts = 0;
 		let localBytes = 0;
-		let globalInts = 4;
-		let globalBytes = 3 + data.founders.length;
+		let globalInts = 32;
+		let globalBytes = 32;
 
-		let accounts = [];
+		let accounts = undefined;
 		let foreignApps = undefined;
 		let foreignAssets = undefined;
 		let appArgs = [];
 		appArgs.push(EncodeBytes(data.companyName));
-
-		for (const property in data.founders) {
-			accounts.push(data.founders[property].wallet);
-		}
+		let numberOfFounders = data.founders.length;
+		appArgs.push(encodeUint64(numberOfFounders));
 
 		let deployContract = algosdk.makeApplicationCreateTxn(
 			senderAddr,
@@ -239,10 +237,21 @@ export async function deployCompany(algoClient, account, data) {
 		let appAddr = await algosdk.getApplicationAddress(appId);
 		console.log("The application wallet is: " + appAddr);
 		await payAlgod(algoClient, account, appAddr, parseInt(data.funding));
-		let coinsId = await mintCoins(algoClient, account, appId, data.coins, data.vault);
+		await addFounders(algoClient, account, appId, data.founders);
 		let sharesId = await mintShares(algoClient, account, appId, data.shares);
+		for (let i = 0; i < data.founders.length; i++) {
+			await foundersOptinToShares(algoClient, data.founders[i], sharesId);
+		};
+		let founders;
+		let foundersId = (Array.from(Array(data.founders.length), (_, index) => index + 1)).map(String);
+		let indexes;
+		for (let i = 0; i < data.founders.length; i += 4) {
+			founders = data.founders.slice(i, i+4);
+			indexes = foundersId.slice(i, i+4);
+			await distributeShares(algoClient, account, appId, sharesId, founders, indexes);
+		}
+		let coinsId = await mintCoins(algoClient, account, appId, data.coins, data.vault);
 		await depositCoins(algoClient, account, appId, coinsId, data.vault);
-		await distributeShares(algoClient, account, appId, sharesId, data.founders);
 		appId = "The application ID is: " + appId + ` Visit https://testnet.algoexplorer.io/application/${appId} to see the company`;
 		return appId;
 	} catch (err) {
@@ -272,6 +281,42 @@ async function payAlgod(algoClient, senderAccount, receiver, amount) {
 	let tx = await algoClient.sendRawTransaction(signedTxn).do();
 	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 10);
 	console.log(amount + " algod has been transferred from " + senderAddr + " to " + receiver + " in the transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+}
+
+async function addFounders(algoClient, senderAccount, companyId, foundersInfoArray) {
+	console.log("=== add company founders (up to 15) ===");
+	let senderAddr = senderAccount.addr;
+	let params = await algoClient.getTransactionParams().do();
+	let operation = "add_founders"
+	let appArgs = [];
+	appArgs.push(EncodeBytes(operation));
+	for (const property in foundersInfoArray) {
+			appArgs.push((decodeAddress(foundersInfoArray[property].wallet)).publicKey);
+	};
+	let accounts = undefined;
+	let foreignApps = undefined;
+	let foreignAssets = undefined;
+	let note = undefined;
+	let lease = undefined;
+	let rekeyTo = undefined;
+	let boxes = undefined;
+	let companyAddFounders = algosdk.makeApplicationNoOpTxn(senderAddr, 
+		params, 
+		companyId, 
+		appArgs, 
+		accounts, 
+		foreignApps, 
+		foreignAssets, 
+		note, 
+		lease, 
+		rekeyTo, 
+		boxes);
+	let signedTxn = companyAddFounders.signTxn(senderAccount.sk);
+
+	// Submit the transaction
+	let tx = await algoClient.sendRawTransaction(signedTxn).do();
+	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 4);
+	console.log(" Company has added all founders in the transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
 }
 
 async function mintShares(algoClient, senderAccount, companyId, sharesInfoArray) {
@@ -316,6 +361,31 @@ async function mintShares(algoClient, senderAccount, companyId, sharesInfoArray)
 	let sharesId = transactionResponse["inner-txns"][0]['asset-index'];
 	console.log(" Company has minted shares with an asset ID " + sharesId + " in the transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
 	return sharesId;
+}
+
+async function foundersOptinToShares(algoClient, founder, sharesId) {
+	console.log("=== optin to shares ===");
+	let account = founder.wallet;
+	let foundersLogicSig = stringToLogicSig(founder.logicSigString);
+	let params = await algoClient.getTransactionParams().do();
+	let closeRemainderTo = undefined;
+	let revocationTarget = undefined;
+	let note = undefined;
+	let rekeyTo = undefined;
+	let optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParams(
+		account,
+		account,
+		closeRemainderTo,
+		revocationTarget,
+		0,
+		note,
+		sharesId,
+		params,
+		rekeyTo);
+	let signedTxn = algosdk.signLogicSigTransaction(optInTxn, foundersLogicSig).blob;
+	let sendTxn = await algoClient.sendRawTransaction(signedTxn).do();
+	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, sendTxn.txId, 4);
+	console.log("founder " + founder.wallet + " has optedIn to the shares " + sharesId + " at the transaction " + sendTxn.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
 }
 
 async function mintCoins(algoClient, senderAccount, companyId, coinsInfoArray, vaultInfoArray) {
@@ -399,80 +469,45 @@ async function depositCoins(algoClient, senderAccount, companyId, coinsId, vault
 	console.log("The deposit of coins has been finished at the transaction " + tx.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
 	}
 
-async function distributeShares(algoClient, senderAccount, companyId, sharesId, founders) {
-	console.log("=== distribute company shares ===");
-	let senderAddr = senderAccount.addr;
-	let params = await algoClient.getTransactionParams().do();
-	let accounts = [];
-	let sharesDistributionAmount = [];
-	let foundersLogicSig = [];
-	for (const property in founders) {
-		accounts.push(founders[property].wallet);
-		sharesDistributionAmount.push(founders[property].shares);
-		foundersLogicSig.push(stringToLogicSig(founders[property].logicSigString))
-	};
-	let closeRemainderTo = undefined;
-	let revocationTarget = undefined;
-	let note = undefined;
-	let rekeyTo = undefined;
-	let gTxn = [];
-	for (const property in accounts) {
-		let account = accounts[property];
-		gTxn.push(
-			algosdk.makeAssetTransferTxnWithSuggestedParams(
-				account,
-				account,
-				closeRemainderTo,
-				revocationTarget,
-				0,
-				note,
-				sharesId,
-				params,
-				rekeyTo)
-		);
-	};
-	let appArgs = [];
-	let operation = "distribute_shares";
-	appArgs.push(EncodeBytes(operation));
-	for (const property in sharesDistributionAmount) {
-		appArgs.push(encodeUint64(sharesDistributionAmount[property]));
-	};
-	let foreignApps = undefined;
-	let foreignAssets = [];
-	foreignAssets.push(sharesId);
-	let lease = undefined;
-	let boxes = undefined;
-	gTxn.push(
-		algosdk.makeApplicationNoOpTxn(senderAddr, 
-			params, 
-			companyId, 
-			appArgs, 
-			accounts, 
-			foreignApps, 
-			foreignAssets, 
-			note, 
-			lease, 
-			rekeyTo, 
-			boxes)
-	);
-	// assign group id to transactions
-	algosdk.assignGroupID(gTxn);
-	let signedGTxn = [];
-	for(const property in gTxn){
-		if (property < gTxn.length - 1){
-			signedGTxn.push(algosdk.signLogicSigTransaction(gTxn[property], foundersLogicSig[property]).blob);
-		}
-		else{
-			signedGTxn.push(gTxn[property].signTxn(senderAccount.sk));
-		}
-	}
-
-	// Submit the transaction
-	let tx = await algoClient.sendRawTransaction(signedGTxn).do();
-	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 10);
-	console.log("The distribution of shares has been finished in a group of transaction that started from the optIn transaction of the founder1 at" + tx.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
-	// let transactionResponse = await algoClient.pendingTransactionInformation(tx.txId).do();
-	// let groupIdUint8 = new Uint8Array(gTxn[0].group.buffer);
-	// let groupId = DecodeBytes(groupIdUint8);
-	// console.log("Founders have optIn to the shares and received shares from the company in a group of transactions with a group ID " + groupId);
+	async function distributeShares(algoClient, senderAccount, companyId, sharesId, founders, foundersIndexes) {
+		console.log("=== distribute company shares ===");
+		let senderAddr = senderAccount.addr;
+		let params = await algoClient.getTransactionParams().do();
+		let accounts = [];
+		for (const property in founders) {
+			accounts.push(founders[property].wallet);
+		};
+		let note = undefined;
+		let rekeyTo = undefined;
+		let appArgs = [];
+		let operation = "distribute_shares";
+		appArgs.push(EncodeBytes(operation));
+		for (const property in foundersIndexes){
+			appArgs.push(EncodeBytes(foundersIndexes[property]));
+		};
+		for (const property in founders) {
+			appArgs.push(encodeUint64(founders[property].shares));
+		};
+		let foreignApps = undefined;
+		let foreignAssets = [];
+		foreignAssets.push(sharesId);
+		let lease = undefined;
+		let boxes = undefined;
+		let companyDistributeShares = algosdk.makeApplicationNoOpTxn(senderAddr,
+			params,
+			companyId,
+			appArgs,
+			accounts,
+			foreignApps,
+			foreignAssets,
+			note,
+			lease,
+			rekeyTo,
+			boxes);
+		let signedTxn = companyDistributeShares.signTxn(senderAccount.sk);
+		// Submit the transaction
+		let tx = await algoClient.sendRawTransaction(signedTxn).do();
+		let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 10);
+		console.log("The distribution of shares to founder(s) " + foundersIndexes + " has been done at the transaction " + tx.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
 }
+
