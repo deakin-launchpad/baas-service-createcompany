@@ -4,7 +4,8 @@ const ERROR = UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR;
 import { connectToAlgorand, getBlockchainAccount, deployVault, respondToServer } from "../../helpers/helperFunctions.js";
 
 const createVault = (payloadData, callback) => {
-	// const data = JSON.parse(payloadData.dataFileURL.json);
+	// for backend testing
+	// const data = JSON.parse(payloadData.dataFileURL);
 	const data = payloadData.dataFileURL.json;
 	console.log(data);
 	let algoClient;

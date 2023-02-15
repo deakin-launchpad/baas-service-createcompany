@@ -80,6 +80,8 @@ $ npm install
 
 ```
 $ cp .env.example .env
+
+If an insufficient balance issue occurs in operation, please change the MNEMONIC to your personal wallet that holds enough balance. 
 ```
 
 - Step4: Start the application
