@@ -3,7 +3,7 @@ import Joi from "joi";
 import Controller from "../../controllers/index.js";
 const Config = UniversalFunctions.CONFIG;
 
-const setCountRoute = {
+const createCompanyRoute = {
 	method: "POST",
 	path: "/api/demo/createCompanyRoute",
 	options: {
@@ -22,7 +22,6 @@ const setCountRoute = {
 			payload: Joi.object({
 				jobID: Joi.string(),
 				datashopServerAddress: Joi.string(),
-				// dataFileURL: Joi.any(),
 				dataFileURL: Joi.any(),
 			}).label("Demo Model"),
 			failAction: UniversalFunctions.failActionFunction,
@@ -35,4 +34,4 @@ const setCountRoute = {
 	},
 };
 
-export default setCountRoute;
+export default createCompanyRoute;

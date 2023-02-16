@@ -1,16 +1,55 @@
 import async from "async";
 import UniversalFunctions from "../../utils/universalFunctions.js";
 const ERROR = UniversalFunctions.CONFIG.APP_CONSTANTS.STATUS_MSG.ERROR;
-import { connectToAlgorand, getBlockchainAccount, deployCompany, respondToServer } from "../../helpers/helperFunctions.js";
+import { connectToAlgorand, getBlockchainAccount, deployVault, deployCompany, respondToServer } from "../../helpers/helperFunctions.js";
 
+/**
+ * 
+ * @param {Object} payloadData
+ * @param {String} payloadData.vaultName
+ * @param {Number} payloadData.funding
+ * @param {Account} account
+ * @param {ClientInstance} algoClient
+ * @param {Function} callback 
+ */
+const createVault = (payloadData, account, algoClient, callback) => {
+	console.log(payloadData);
+
+	const tasks = {
+		deployVault: (cb) => {
+			deployVault(algoClient, account, payloadData, (err, result) => {
+				if (err) return cb(err);
+				if (!result) return cb(ERROR.APP_ERROR);
+				cb(null, result);
+			});
+		},
+	};
+	async.series(tasks, (err, result) => {
+		if (err) return callback(err);
+		return callback(null, result);
+	});
+};
+
+/**
+ * 
+ * @param {Object} payloadData
+ * @param {String} payloadData.companyName
+ * @param {Number} payloadData.companyFunding
+ * @param {Object[]} payloadData.founders
+ * @param {Object[]} payloadData.shares
+ * @param {Object[]} payloadData.coins
+ * @param {String} payloadData.vaultName
+ * @param {Number} payloadData.vaultFunding
+ * @param {Function} callback 
+ */
 const createCompany = (payloadData, callback) => {
-	// for backend testing
-	// const data = JSON.parse(payloadData.dataFileURL);
-	const data = payloadData.dataFileURL.json;
-	console.log(data);
+	const data = JSON.parse(payloadData.dataFileURL);
+	// console.log(data);
 	let algoClient;
 	let account;
 	let appId;
+	let vaultId;
+	let vaultAddress;
 
 	const tasks = {
 		connectToBlockchain: (cb) => {
@@ -23,19 +62,45 @@ const createCompany = (payloadData, callback) => {
 			if (!account) return cb(ERROR.APP_ERROR);
 			cb();
 		},
-		deployCompany: async (cb) => {
-			appId = await deployCompany(algoClient, account, data);
-			if (!appId) return cb(ERROR.APP_ERROR);
+		deployVault: (cb) => {
+			const vaultData = {
+				vaultName: data.vaultName,
+				funding: data.vaultFunding,
+			}
+			createVault(vaultData, account, algoClient, (err, result) => {
+				if (err) return cb(err);
+				vaultId = result.deployVault.appId;
+				vaultAddress = result.deployVault.appAddress;
+				cb();
+			});
+		},
+		deployCompany: (cb) => {
+			const companyData = {
+				companyName: data.companyName,
+				funding: data.companyFunding,
+				founders: data.founders,
+				shares: data.shares,
+				coins: data.coins,
+				vaultId,
+				vaultAddress,
+			}
+			deployCompany(algoClient, account, companyData, (err, result) => {
+				if (err) return cb(err);
+				if (!result) return cb(ERROR.APP_ERROR);
+				console.log(result);
+				appId = result;
+				cb();
+			});
 		},
 		response: (cb) => {
-			respondToServer(payloadData, appId, cb);
+			const response = `The application ID is: ${appId} Visit https://testnet.algoexplorer.io/application/${appId} to see the company`
+			respondToServer(payloadData, response, cb);
 			cb();
 		},
 	};
-
 	async.series(tasks, (err, result) => {
 		if (err) return callback(err);
-		return callback(null, { result });
+		return callback(null, { appId, vaultId, vaultAddress });
 	});
 };
 

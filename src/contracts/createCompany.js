@@ -2,23 +2,23 @@ const createCompany = `#pragma version 8
 txn ApplicationID
 int 0
 ==
-bnz main_l21
+bnz main_l23
 txn OnCompletion
 int DeleteApplication
 ==
-bnz main_l20
+bnz main_l22
 txn OnCompletion
 int UpdateApplication
 ==
-bnz main_l19
+bnz main_l21
 txn OnCompletion
 int OptIn
 ==
-bnz main_l18
+bnz main_l20
 txn OnCompletion
 int CloseOut
 ==
-bnz main_l17
+bnz main_l19
 txn OnCompletion
 int NoOp
 ==
@@ -26,42 +26,43 @@ bnz main_l7
 err
 main_l7:
 txna ApplicationArgs 0
+byte "add_founders"
+==
+bnz main_l18
+txna ApplicationArgs 0
 byte "mint_coins"
 ==
-bnz main_l16
+bnz main_l17
 txna ApplicationArgs 0
 byte "mint_shares"
 ==
-bnz main_l15
+bnz main_l16
 txna ApplicationArgs 0
 byte "deposit_coins"
 ==
-bnz main_l14
+bnz main_l15
 txna ApplicationArgs 0
 byte "distribute_shares"
 ==
-bnz main_l12
+bnz main_l13
 err
-main_l12:
-callsub distributeshares_9
 main_l13:
-int 0
-return
+callsub distributeshares_10
 main_l14:
-callsub depositcoins_10
-b main_l13
+int 0
+return
 main_l15:
-callsub mintshares_6
-b main_l13
+callsub depositcoins_11
+b main_l14
 main_l16:
-callsub mintcoins_5
-b main_l13
+callsub mintshares_7
+b main_l14
 main_l17:
-int 0
-return
+callsub mintcoins_6
+b main_l14
 main_l18:
-int 0
-return
+callsub addfounders_2
+b main_l14
 main_l19:
 int 0
 return
@@ -69,46 +70,52 @@ main_l20:
 int 0
 return
 main_l21:
+int 0
+return
+main_l22:
+int 0
+return
+main_l23:
 callsub oncreate_1
 int 1
 return
 
 // convert_uint_to_bytes
 convertuinttobytes_0:
-store 1
-load 1
+store 3
+load 3
 int 0
 ==
 bnz convertuinttobytes_0_l5
 byte ""
-store 2
-load 1
-store 3
-convertuinttobytes_0_l2:
+store 4
 load 3
+store 5
+convertuinttobytes_0_l2:
+load 5
 int 0
 >
 bnz convertuinttobytes_0_l4
-load 2
+load 4
 b convertuinttobytes_0_l6
 convertuinttobytes_0_l4:
-load 3
+load 5
 int 10
 %
-store 4
+store 6
 byte "0123456789"
-load 4
-load 4
+load 6
+load 6
 int 1
 +
 substring3
-load 2
+load 4
 concat
-store 2
-load 3
+store 4
+load 5
 int 10
 /
-store 3
+store 5
 b convertuinttobytes_0_l2
 convertuinttobytes_0_l5:
 byte "0"
@@ -118,7 +125,7 @@ retsub
 // on_create
 oncreate_1:
 txn NumAppArgs
-int 1
+int 2
 ==
 assert
 byte "company_name"
@@ -139,94 +146,142 @@ app_global_put
 byte "vault_wallet"
 byte ""
 app_global_put
-int 1
-store 0
-oncreate_1_l1:
-load 0
-txn NumAccounts
-int 1
-+
-<
-bz oncreate_1_l3
-byte "founder"
-load 0
-callsub convertuinttobytes_0
-concat
-load 0
-txnas Accounts
+byte "number_of_founder(s)"
+txna ApplicationArgs 1
+btoi
 app_global_put
-load 0
-int 1
-+
-store 0
-b oncreate_1_l1
-oncreate_1_l3:
-byte "number_of_founder"
-load 0
-int 1
--
+byte "shares_total"
+int 0
+app_global_put
+byte "founders_added"
+int 0
 app_global_put
 retsub
 
+// add_founders
+addfounders_2:
+byte "number_of_founder(s)"
+app_global_get
+store 0
+global GroupSize
+int 1
+==
+txn GroupIndex
+int 0
+==
+&&
+assert
+int 0
+store 2
+addfounders_2_l1:
+load 2
+int 1
+<
+bnz addfounders_2_l5
+byte "founders_added"
+app_global_get
+int 0
+==
+txn NumAppArgs
+load 0
+int 1
++
+==
+&&
+assert
+int 1
+store 1
+addfounders_2_l3:
+load 1
+txn NumAppArgs
+<
+bz addfounders_2_l6
+load 1
+callsub convertuinttobytes_0
+load 1
+txnas ApplicationArgs
+app_global_put
+load 1
+int 1
++
+store 1
+b addfounders_2_l3
+addfounders_2_l5:
+load 2
+gtxns RekeyTo
+global ZeroAddress
+==
+assert
+load 2
+int 1
++
+store 2
+b addfounders_2_l1
+addfounders_2_l6:
+byte "founders_added"
+int 1
+app_global_put
+int 1
+return
+
 // get_global_value
-getglobalvalue_2:
-store 16
-store 15
-load 15
-load 16
-app_global_get_ex
-store 18
+getglobalvalue_3:
 store 17
+store 16
+load 16
 load 17
+app_global_get_ex
+store 19
+store 18
+load 18
 retsub
 
 // create_tokens
-createtokens_3:
+createtokens_4:
 store 24
 store 23
 store 22
 store 21
 store 20
-store 19
 itxn_begin
 load 24
 int 1
 ==
-bnz createtokens_3_l2
+bnz createtokens_4_l2
 int acfg
 itxn_field TypeEnum
-load 19
-itxn_field ConfigAssetName
 load 20
-itxn_field ConfigAssetUnitName
+itxn_field ConfigAssetName
 load 21
-itxn_field ConfigAssetTotal
+itxn_field ConfigAssetUnitName
 load 22
-itxn_field ConfigAssetDecimals
+itxn_field ConfigAssetTotal
 load 23
+itxn_field ConfigAssetDecimals
+int 0
 itxn_field ConfigAssetDefaultFrozen
-b createtokens_3_l3
-createtokens_3_l2:
+b createtokens_4_l3
+createtokens_4_l2:
 int acfg
 itxn_field TypeEnum
-load 19
-itxn_field ConfigAssetName
 load 20
-itxn_field ConfigAssetUnitName
+itxn_field ConfigAssetName
 load 21
-itxn_field ConfigAssetTotal
+itxn_field ConfigAssetUnitName
 load 22
-itxn_field ConfigAssetDecimals
+itxn_field ConfigAssetTotal
 load 23
+itxn_field ConfigAssetDecimals
+int 0
 itxn_field ConfigAssetDefaultFrozen
 txna Accounts 1
 itxn_field ConfigAssetReserve
-createtokens_3_l3:
+createtokens_4_l3:
 itxn_submit
 retsub
 
 // vault_connect_and_optIn_coins
-vaultconnectandoptIncoins_4:
+vaultconnectandoptIncoins_5:
 store 26
 store 25
 byte "connect_company_and_optIn_to_coins"
@@ -248,7 +303,7 @@ itxn_submit
 retsub
 
 // mint_coins
-mintcoins_5:
+mintcoins_6:
 global GroupSize
 int 1
 ==
@@ -258,42 +313,39 @@ int 0
 &&
 assert
 int 0
-store 14
-mintcoins_5_l1:
-load 14
+store 15
+mintcoins_6_l1:
+load 15
 int 1
 <
-bz mintcoins_5_l3
-load 14
+bz mintcoins_6_l3
+load 15
 gtxns RekeyTo
 global ZeroAddress
 ==
 assert
-load 14
+load 15
 int 1
 +
-store 14
-b mintcoins_5_l1
-mintcoins_5_l3:
+store 15
+b mintcoins_6_l1
+mintcoins_6_l3:
 txna Applications 1
-store 5
+store 7
 txna Accounts 1
-store 6
-txna ApplicationArgs 1
 store 8
+txna ApplicationArgs 1
+store 10
 txna ApplicationArgs 2
-store 9
+store 11
 txna ApplicationArgs 3
 btoi
-store 10
+store 12
 txna ApplicationArgs 4
 btoi
-store 11
-txna ApplicationArgs 5
-btoi
-store 12
-int 1
 store 13
+int 1
+store 14
 byte "coins_id"
 app_global_get
 int 0
@@ -308,43 +360,42 @@ app_global_get
 int 0
 ==
 &&
-load 5
+load 7
 byte "vault_wallet"
-callsub getglobalvalue_2
-load 6
+callsub getglobalvalue_3
+load 8
 ==
 &&
 txn NumAppArgs
-int 6
+int 5
 ==
 &&
 assert
-load 8
-load 9
 load 10
 load 11
 load 12
 load 13
-callsub createtokens_3
+load 14
+callsub createtokens_4
 itxn CreatedAssetID
-store 7
-load 5
+store 9
 load 7
-callsub vaultconnectandoptIncoins_4
+load 9
+callsub vaultconnectandoptIncoins_5
 byte "coins_id"
-load 7
+load 9
 app_global_put
 byte "vault_id"
-load 5
+load 7
 app_global_put
 byte "vault_wallet"
-load 6
+load 8
 app_global_put
 int 1
 return
 
 // mint_shares
-mintshares_6:
+mintshares_7:
 global GroupSize
 int 1
 ==
@@ -354,23 +405,23 @@ int 0
 &&
 assert
 int 0
-store 35
-mintshares_6_l1:
-load 35
+store 34
+mintshares_7_l1:
+load 34
 int 1
 <
-bz mintshares_6_l3
-load 35
+bz mintshares_7_l3
+load 34
 gtxns RekeyTo
 global ZeroAddress
 ==
 assert
-load 35
+load 34
 int 1
 +
-store 35
-b mintshares_6_l1
-mintshares_6_l3:
+store 34
+b mintshares_7_l1
+mintshares_7_l3:
 txna ApplicationArgs 1
 store 29
 txna ApplicationArgs 2
@@ -381,17 +432,14 @@ store 31
 txna ApplicationArgs 4
 btoi
 store 32
-txna ApplicationArgs 5
-btoi
-store 33
 int 0
-store 34
+store 33
 byte "shares_id"
 app_global_get
 int 0
 ==
 txn NumAppArgs
-int 6
+int 5
 ==
 &&
 assert
@@ -400,232 +448,222 @@ load 30
 load 31
 load 32
 load 33
-load 34
-callsub createtokens_3
+callsub createtokens_4
 itxn CreatedAssetID
 store 28
 byte "shares_id"
 load 28
 app_global_put
+byte "shares_total"
+load 31
+app_global_put
 int 1
 return
 
 // company_send_tokens
-companysendtokens_7:
-store 44
-store 43
+companysendtokens_8:
 store 42
+store 41
+store 40
 itxn_begin
 int axfer
 itxn_field TypeEnum
-load 42
+load 40
 itxn_field XferAsset
-load 44
+load 42
 itxn_field AssetReceiver
-load 43
+load 41
 itxn_field AssetAmount
 itxn_submit
 retsub
 
 // check_assets_holding
-checkassetsholding_8:
+checkassetsholding_9:
+store 45
+store 44
+store 43
+load 44
+load 45
+asset_holding_get AssetBalance
 store 47
 store 46
-store 45
-load 46
-load 47
-asset_holding_get AssetBalance
-store 49
-store 48
-load 45
+load 43
 byte "sender"
 ==
-bnz checkassetsholding_8_l4
-load 45
+load 43
+byte "founder"
+==
+||
+bnz checkassetsholding_9_l4
+load 43
 byte "receiver"
 ==
-bnz checkassetsholding_8_l3
+bnz checkassetsholding_9_l3
 err
-checkassetsholding_8_l3:
-load 49
-b checkassetsholding_8_l5
-checkassetsholding_8_l4:
-load 48
-checkassetsholding_8_l5:
+checkassetsholding_9_l3:
+load 47
+b checkassetsholding_9_l5
+checkassetsholding_9_l4:
+load 46
+checkassetsholding_9_l5:
 retsub
 
 // distribute_shares
-distributeshares_9:
+distributeshares_10:
 global GroupSize
-txn NumAppArgs
+int 1
 ==
 txn GroupIndex
-txn NumAppArgs
-int 1
--
+int 0
 ==
 &&
 assert
 int 0
-store 41
-distributeshares_9_l1:
-load 41
-txn NumAppArgs
+store 39
+distributeshares_10_l1:
+load 39
+int 1
 <
-bnz distributeshares_9_l14
+bnz distributeshares_10_l11
+int 0
+store 36
 txna Assets 0
-store 37
+store 35
 byte "sender"
 global CurrentApplicationAddress
-load 37
-callsub checkassetsholding_8
-store 38
-byte "number_of_founder"
-app_global_get
-store 36
-int 0
-store 39
+load 35
+callsub checkassetsholding_9
+store 37
+txn NumAccounts
 int 1
-store 40
-distributeshares_9_l3:
-load 40
-load 36
++
+store 38
+distributeshares_10_l3:
+load 38
+txn NumAccounts
+int 2
+*
 <=
-bnz distributeshares_9_l13
-load 37
+bnz distributeshares_10_l10
+load 35
 byte "shares_id"
 app_global_get
 ==
-load 38
-load 39
-==
+load 37
+load 36
+>=
 &&
 txn NumAppArgs
-load 36
+txn NumAccounts
+int 2
+*
 int 1
 +
 ==
 &&
 assert
 int 1
-store 40
-distributeshares_9_l5:
-load 40
-load 36
+store 38
+distributeshares_10_l5:
+load 38
+txn NumAccounts
 <=
-bnz distributeshares_9_l12
+bnz distributeshares_10_l9
 int 1
-store 40
-distributeshares_9_l7:
-load 40
-load 36
+store 38
+distributeshares_10_l7:
+load 38
+txn NumAccounts
 <=
-bnz distributeshares_9_l11
-int 1
-store 40
-distributeshares_9_l9:
-load 40
-load 36
-<=
-bz distributeshares_9_l15
-load 37
-load 40
+bz distributeshares_10_l12
+load 35
+load 38
+txn NumAccounts
++
 txnas ApplicationArgs
 btoi
-byte "founder"
-load 40
-callsub convertuinttobytes_0
-concat
-app_global_get
-callsub companysendtokens_7
-load 40
-int 1
-+
-store 40
-b distributeshares_9_l9
-distributeshares_9_l11:
-byte "receiver"
-byte "founder"
-load 40
-callsub convertuinttobytes_0
-concat
-app_global_get
-load 37
-callsub checkassetsholding_8
-assert
-load 40
-int 1
-+
-store 40
-b distributeshares_9_l7
-distributeshares_9_l12:
-load 40
+load 38
 txnas Accounts
-byte "founder"
-load 40
-callsub convertuinttobytes_0
-concat
+callsub companysendtokens_8
+load 38
+int 1
++
+store 38
+b distributeshares_10_l7
+distributeshares_10_l9:
+load 38
+txnas ApplicationArgs
 app_global_get
+load 38
+txnas Accounts
 ==
 assert
-load 40
+byte "founder"
+load 38
+txnas Accounts
+load 35
+callsub checkassetsholding_9
+int 0
+==
+assert
+load 38
 int 1
 +
-store 40
-b distributeshares_9_l5
-distributeshares_9_l13:
-load 39
-load 40
+store 38
+b distributeshares_10_l5
+distributeshares_10_l10:
+load 36
+load 38
 txnas ApplicationArgs
 btoi
 +
-store 39
-load 40
+store 36
+load 38
 int 1
 +
-store 40
-b distributeshares_9_l3
-distributeshares_9_l14:
-load 41
+store 38
+b distributeshares_10_l3
+distributeshares_10_l11:
+load 39
 gtxns RekeyTo
 global ZeroAddress
 ==
 assert
-load 41
+load 39
 int 1
 +
-store 41
-b distributeshares_9_l1
-distributeshares_9_l15:
+store 39
+b distributeshares_10_l1
+distributeshares_10_l12:
 int 1
 return
 
 // deposit_coins
-depositcoins_10:
+depositcoins_11:
 txna Accounts 1
-store 50
+store 48
 txna Assets 0
-store 51
+store 49
 byte "sender"
 global CurrentApplicationAddress
-load 51
-callsub checkassetsholding_8
-store 52
+load 49
+callsub checkassetsholding_9
+store 50
 byte "coins_id"
 app_global_get
-load 51
+load 49
 ==
 byte "vault_wallet"
 app_global_get
-load 50
+load 48
 ==
 &&
 byte "receiver"
-load 50
-load 51
-callsub checkassetsholding_8
+load 48
+load 49
+callsub checkassetsholding_9
 &&
-load 52
+load 50
 int 0
 >=
 &&
@@ -634,10 +672,10 @@ int 1
 ==
 &&
 assert
-load 51
-load 52
+load 49
 load 50
-callsub companysendtokens_7
+load 48
+callsub companysendtokens_8
 int 1
 return
 `;
