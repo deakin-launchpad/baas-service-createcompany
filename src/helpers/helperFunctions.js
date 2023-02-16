@@ -79,7 +79,7 @@ export const sendTransaction = async (algoClient, signedTx, txnId, cb) => {
  * @param {Object} payloadData
  * @param {any} cb
  */
-export const respondToServer = (payloadData, data, cb) => {
+export const respondToServer = (payloadData, data, callback) => {
 	console.log("=== RESPOND TO SERVER ===");
 	let service = payloadData;
 	let destination = service.datashopServerAddress + "/api/job/updateJob";
@@ -96,11 +96,12 @@ export const respondToServer = (payloadData, data, cb) => {
 			jobid: service.jobID,
 		};
 	}
-	axios.put(destination, lambdaInput).catch((e) => {
-		cb(e);
-	});
-	console.log("=== JOB RESPONDED ===");
-	return;
+	axios.put(destination, lambdaInput).then((res) => {
+		callback(null, "Job responded");
+	})
+		.catch((e) => {
+			callback(e, null);
+		});
 }
 
 const compileProgram = async (client, programSource) => {

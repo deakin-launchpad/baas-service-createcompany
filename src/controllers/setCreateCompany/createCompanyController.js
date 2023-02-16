@@ -94,8 +94,11 @@ const createCompany = (payloadData, callback) => {
 		},
 		response: (cb) => {
 			const response = `The application ID is: ${appId} Visit https://testnet.algoexplorer.io/application/${appId} to see the company`
-			respondToServer(payloadData, response, cb);
-			cb();
+			respondToServer(payloadData, response, (err, result) => {
+				if (err) return cb(err);
+				console.log(result);
+				cb();
+			})
 		},
 	};
 	async.series(tasks, (err, result) => {
