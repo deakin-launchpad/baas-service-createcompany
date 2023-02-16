@@ -43,7 +43,7 @@ const createVault = (payloadData, account, algoClient, callback) => {
  * @param {Function} callback 
  */
 const createCompany = (payloadData, callback) => {
-	const data = JSON.parse(payloadData.dataFileURL);
+	// const data = JSON.parse(payloadData.dataFileURL);
 	// console.log(data);
 	let algoClient;
 	let account;
@@ -93,7 +93,7 @@ const createCompany = (payloadData, callback) => {
 			});
 		},
 		response: (cb) => {
-			const response = `The application ID is: ${appId} Visit https://testnet.algoexplorer.io/application/${appId} to see the company`
+			const response = { appId, vaultId, vaultAddress };
 			respondToServer(payloadData, response, (err, result) => {
 				if (err) return cb(err);
 				console.log(result);
