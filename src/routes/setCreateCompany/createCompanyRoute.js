@@ -23,31 +23,34 @@ const createCompanyRoute = {
 				jobID: Joi.string(),
 				datashopServerAddress: Joi.string(),
 				dataFileURL: Joi.object({
-					vaultName: Joi.string(),
-					vaultFunding: Joi.number(),
-					companyName: Joi.string(),
-					founders: Joi.array().items(
-						Joi.object({
-							wallet: Joi.string(),
-							shares: Joi.number(),
-							logicSigString: Joi.string(),
-						})
-					),
-					shares: Joi.array().items(
-						Joi.object({
-							name: Joi.string(),
-							unitName: Joi.string(),
-							numberOfShares: Joi.number(),
-						})
-					),
-					coins: Joi.array().items(
-						Joi.object({
-							name: Joi.string(),
-							unitName: Joi.string(),
-							numberOfCoins: Joi.number(),
-						})
-					),
-					companyFunding: Joi.number(),
+					url: Joi.string().min(0),
+					json: Joi.object({
+						vaultName: Joi.string(),
+						vaultFunding: Joi.number(),
+						companyName: Joi.string(),
+						founders: Joi.array().items(
+							Joi.object({
+								wallet: Joi.string(),
+								shares: Joi.number(),
+								logicSigString: Joi.string(),
+							})
+						),
+						shares: Joi.array().items(
+							Joi.object({
+								name: Joi.string(),
+								unitName: Joi.string(),
+								numberOfShares: Joi.number(),
+							})
+						),
+						coins: Joi.array().items(
+							Joi.object({
+								name: Joi.string(),
+								unitName: Joi.string(),
+								numberOfCoins: Joi.number(),
+							})
+						),
+						companyFunding: Joi.number()
+					}),
 				}),
 			}).label("Demo Model"),
 			failAction: UniversalFunctions.failActionFunction,

@@ -43,6 +43,7 @@ const createVault = (payloadData, account, algoClient, callback) => {
  * @param {Function} callback 
  */
 const createCompany = (payloadData, callback) => {
+	const data = payloadData.dataFileURL.json;
 	// const data = JSON.parse(payloadData.dataFileURL);
 	// console.log(data);
 	let algoClient;
