@@ -35,20 +35,18 @@ const createCompanyRoute = {
 								logicSigString: Joi.string(),
 							})
 						),
-						shares: Joi.array().items(
-							Joi.object({
-								name: Joi.string(),
-								unitName: Joi.string(),
-								numberOfShares: Joi.number(),
-							})
-						),
-						coins: Joi.array().items(
-							Joi.object({
-								name: Joi.string(),
-								unitName: Joi.string(),
-								numberOfCoins: Joi.number(),
-							})
-						),
+						shares: Joi.object({
+							name: Joi.string(),
+							unitName: Joi.string(),
+							numberOfShares: Joi.number(),
+							decimal: Joi.number(),
+						}),
+						coins: Joi.object({
+							name: Joi.string(),
+							unitName: Joi.string(),
+							numberOfCoins: Joi.number(),
+							decimal: Joi.number(),
+						}),
 						companyFunding: Joi.number()
 					}),
 				}),
