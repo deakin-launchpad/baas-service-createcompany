@@ -120,7 +120,7 @@ const EncodeBytes = (utf8String) => {
 const stringToLogicSig = (logicSigString) => {
 	let logicSigArray = logicSigString.split(",");
 	let logicSigBytes = new Uint8Array(logicSigArray);
-	return algosdk.LogicSigAccount.fromByte(logicSigBytes);
+	return algosdk.LogicSig.fromByte(logicSigBytes);
 }
 
 export const deployVault = async (algoClient, account, data, callback) => {
