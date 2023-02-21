@@ -11,6 +11,7 @@ const createCompanyRoute = {
 		tags: ["api"],
 		handler: function (request, h) {
 			var payloadData = request.payload;
+			console.log(JSON.stringify(payloadData));
 			return new Promise((resolve, reject) => {
 				Controller.SetCreateCompany(payloadData, function (err, data) {
 					if (err) reject(UniversalFunctions.sendError(err));
@@ -47,7 +48,7 @@ const createCompanyRoute = {
 							numberOfCoins: Joi.number(),
 							decimal: Joi.number(),
 						}),
-						companyFunding: Joi.number()
+						companyFunding: Joi.number(),
 					}),
 				}),
 			}).label("Demo Model"),
