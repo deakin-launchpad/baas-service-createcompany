@@ -123,7 +123,16 @@ const stringToLogicSig = (logicSigString) => {
 	return algosdk.LogicSig.fromByte(logicSigBytes);
 }
 
-export const deployVault = async (algoClient, account, data, callback) => {
+/**
+ * 
+ * @param {AlgoSDKInstance} algoClient 
+ * @param {AlgorandAccount} account 
+ * @param {Object} data 
+ * @param {String} data.vaultName
+ * @param {Number} data.funding
+ * @returns 
+ */
+export const deployVault = async (algoClient, account, data) => {
 	console.log("=== DEPLOY VAULT CONTRACT ===");
 	try {
 		let params = await algoClient.getTransactionParams().do();
@@ -164,22 +173,36 @@ export const deployVault = async (algoClient, account, data, callback) => {
 		let tx = await algoClient.sendRawTransaction(signedTxn).do();
 		let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 4);
 		let transactionResponse = await algoClient.pendingTransactionInformation(tx.txId).do();
-		let appId = transactionResponse["application-index"];
+		let vaultId = transactionResponse["application-index"];
 
 		// Print the completed transaction and new ID
 		console.log("Transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
-		console.log("The application ID is: " + appId);
-		let appAddress = algosdk.getApplicationAddress(appId);
-		console.log("The application wallet is: " + appAddress);
-		await payAlgod(algoClient, account, appAddress, parseInt(data.funding));
-		callback(null, { appId, appAddress });
+		console.log("The application ID is: " + vaultId);
+		let vaultAddress = algosdk.getApplicationAddress(vaultId);
+		console.log("The application wallet is: " + vaultAddress);
+		await payAlgod(algoClient, account, vaultAddress, parseInt(data.funding));
+		return { vaultId, vaultAddress };
 	} catch (err) {
 		console.log(err);
-		callback(err, null);
+		return null;
 	}
 }
 
-export const deployCompany = async (algoClient, account, data, callback) => {
+/**
+ * 
+ * @param {AlgoSDKInstance} algoClient 
+ * @param {AlgorandAccount} account 
+ * @param {Object} data 
+ * @param {String} data.companyName
+ * @param {Number} data.funding 
+ * @param {Object[]} data.founders 
+ * @param {Object} data.shares 
+ * @param {Object} data.coins 
+ * @param {Number} data.vaultId 
+ * @param {String} data.vaultAddress 
+ * @returns 
+ */
+export const deployCompany = async (algoClient, account, data) => {
 	console.log("=== DEPLOY COMPANY CONTRACT ===");
 	try {
 		// let senderAccount = algosdk.mnemonicToSecretKey(process.env.MNEMONIC);
@@ -251,11 +274,11 @@ export const deployCompany = async (algoClient, account, data, callback) => {
 		let coinsId = await mintCoins(algoClient, account, appId, data.coins, vaultData);
 		await depositCoins(algoClient, account, appId, coinsId, vaultData);
 
-		callback(null, appId);
+		return appId;
 
 	} catch (err) {
 		console.log(err);
-		callback(err, null);
+		return null;
 	}
 }
 
