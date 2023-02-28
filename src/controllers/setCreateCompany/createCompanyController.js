@@ -40,9 +40,8 @@ const createVault = (payloadData, account, algoClient, callback) => {
  * @param {Object[]} payloadData.coins
  * @param {String} payloadData.vaultName
  * @param {Number} payloadData.vaultFunding
- * @param {Function} callback 
  */
-const createCompany = (payloadData, callback) => {
+const createCompany = async (payloadData) => {
 	const data = payloadData.dataFileURL.json;
 	// const data = JSON.parse(payloadData.dataFileURL);
 	// console.log(data);
@@ -93,19 +92,26 @@ const createCompany = (payloadData, callback) => {
 				cb();
 			});
 		},
-		response: (cb) => {
-			const response = { appId, vaultId, vaultAddress };
-			respondToServer(payloadData, response, (err, result) => {
-				if (err) return cb(err);
-				console.log(result);
-				cb();
-			})
-		},
 	};
-	async.series(tasks, (err, result) => {
-		if (err) return callback(err);
-		return callback(null, { appId, vaultId, vaultAddress });
-	});
+
+	let response;
+
+	try {
+		await async.series(tasks);
+		response = { appId, vaultId, vaultAddress };
+	} catch (error) {
+		console.log(error);
+		response = null;
+	} finally {
+		respondToServer(payloadData, response, (err, result) => {
+			if (err) {
+				console.log("Failed to update job: ", err);
+			} else {
+				console.log("Successfully updated job");
+			}
+		})
+	}
+
 };
 
 export default createCompany;

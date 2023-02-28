@@ -12,12 +12,12 @@ const createCompanyRoute = {
 		handler: function (request, h) {
 			var payloadData = request.payload;
 			console.log(JSON.stringify(payloadData));
-			return new Promise((resolve, reject) => {
-				Controller.SetCreateCompany(payloadData, function (err, data) {
-					if (err) reject(UniversalFunctions.sendError(err));
-					else resolve(UniversalFunctions.sendSuccess(Config.APP_CONSTANTS.STATUS_MSG.SUCCESS.DEFAULT, data));
-				});
-			});
+
+			Controller.SetCreateCompany(payloadData)
+
+			return new Promise((resolve, _) => {
+				resolve(UniversalFunctions.sendSuccess(Config.APP_CONSTANTS.STATUS_MSG.SUCCESS.DEFAULT, {}));
+			})
 		},
 		validate: {
 			payload: Joi.object({

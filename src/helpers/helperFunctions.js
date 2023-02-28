@@ -81,6 +81,9 @@ export const sendTransaction = async (algoClient, signedTx, txnId, cb) => {
  */
 export const respondToServer = (payloadData, data, callback) => {
 	console.log("=== RESPOND TO SERVER ===");
+
+	console.log("Payload Data", payloadData);
+
 	let service = payloadData;
 	let destination = service.datashopServerAddress + "/api/job/updateJob";
 	let lambdaInput;
@@ -92,10 +95,11 @@ export const respondToServer = (payloadData, data, callback) => {
 		};
 	} else {
 		lambdaInput = {
-			insightFileURL: service.dataFileURL,
+			insightFileURL: "N/A",
 			jobid: service.jobID,
 		};
 	}
+	console.log("Data sent back to the Baas Backend", lambdaInput);
 	axios.put(destination, lambdaInput).then((res) => {
 		callback(null, "Job responded");
 	})
