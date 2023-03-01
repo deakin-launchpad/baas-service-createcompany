@@ -92,7 +92,7 @@ export const respondToServer = (payloadData, data, callback) => {
 		};
 	} else {
 		lambdaInput = {
-			insightFileURL: service.dataFileURL,
+			insightFileURL: "N/A", // failed job status
 			jobid: service.jobID,
 		};
 	}
