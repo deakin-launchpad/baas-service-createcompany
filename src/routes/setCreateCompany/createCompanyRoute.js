@@ -26,7 +26,7 @@ const createCompanyRoute = {
 						companyName: Joi.string(),
 						founders: Joi.array().items(
 							Joi.object({
-								wallet: Joi.string(),
+								addr: Joi.string(),
 								shares: Joi.number(),
 								logicSigString: Joi.string(),
 							})
