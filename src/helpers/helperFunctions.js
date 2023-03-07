@@ -234,7 +234,7 @@ export const deployCompany = async (algoClient, account, data, callback) => {
 		await addFounders(algoClient, account, appId, data.founders);
 		let sharesId = await mintShares(algoClient, account, appId, data.shares);
 		for (let i = 0; i < data.founders.length; i++) {
-			await foundersOptinToShares(algoClient, data.founders[i], sharesId);
+			await optinToAsset(algoClient, data.founders[i], sharesId);
 		};
 		let founders;
 		let foundersId = (Array.from(Array(data.founders.length), (_, index) => index + 1)).map(String);
@@ -290,7 +290,7 @@ const addFounders = async (algoClient, senderAccount, companyId, foundersInfoArr
 	let appArgs = [];
 	appArgs.push(EncodeBytes(operation));
 	for (const property in foundersInfoArray) {
-		appArgs.push((decodeAddress(foundersInfoArray[property].wallet)).publicKey);
+		appArgs.push((decodeAddress(foundersInfoArray[property].addr)).publicKey);
 	};
 	let accounts = undefined;
 	let foreignApps = undefined;
@@ -362,29 +362,54 @@ const mintShares = async (algoClient, senderAccount, companyId, sharesInfoArray)
 	return sharesId;
 }
 
-const foundersOptinToShares = async (algoClient, founder, sharesId) => {
-	console.log("=== optin to shares ===");
-	let account = founder.wallet;
-	let foundersLogicSig = stringToLogicSig(founder.logicSigString);
+// const foundersOptinToShares = async (algoClient, founder, sharesId) => {
+// 	console.log("=== optin to shares ===");
+// 	let account = founder.wallet;
+// 	let foundersLogicSig = stringToLogicSig(founder.logicSigString);
+// 	let params = await algoClient.getTransactionParams().do();
+// 	let closeRemainderTo = undefined;
+// 	let revocationTarget = undefined;
+// 	let note = undefined;
+// 	let rekeyTo = undefined;
+// 	let optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParams(
+// 		account,
+// 		account,
+// 		closeRemainderTo,
+// 		revocationTarget,
+// 		0,
+// 		note,
+// 		sharesId,
+// 		params,
+// 		rekeyTo);
+// 	let signedTxn = algosdk.signLogicSigTransaction(optInTxn, foundersLogicSig).blob;
+// 	let sendTxn = await algoClient.sendRawTransaction(signedTxn).do();
+// 	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, sendTxn.txId, 4);
+// 	console.log("founder " + founder.wallet + " has optedIn to the shares " + sharesId + " at the transaction " + sendTxn.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
+// }
+
+const optinToAsset = async (algoClient, account, assetId) => {
+	console.log("=== optin to an asset ===");
+	let accountAddr = account.addr;
+	let accountLogicSig = stringToLogicSig(account.logicSigString);
 	let params = await algoClient.getTransactionParams().do();
 	let closeRemainderTo = undefined;
 	let revocationTarget = undefined;
 	let note = undefined;
 	let rekeyTo = undefined;
 	let optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParams(
-		account,
-		account,
+		accountAddr,
+		accountAddr,
 		closeRemainderTo,
 		revocationTarget,
 		0,
 		note,
-		sharesId,
+		assetId,
 		params,
 		rekeyTo);
-	let signedTxn = algosdk.signLogicSigTransaction(optInTxn, foundersLogicSig).blob;
+	let signedTxn = algosdk.signLogicSigTransaction(optInTxn, accountLogicSig).blob;
 	let sendTxn = await algoClient.sendRawTransaction(signedTxn).do();
 	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, sendTxn.txId, 4);
-	console.log("founder " + founder.wallet + " has optedIn to the shares " + sharesId + " at the transaction " + sendTxn.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
+	console.log("account " + account.addr + " has optedIn to the asset " + assetId + " at the transaction " + sendTxn.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
 }
 
 const mintCoins = async (algoClient, senderAccount, companyId, coinsInfoArray, vaultInfo) => {
@@ -473,7 +498,7 @@ const distributeShares = async (algoClient, senderAccount, companyId, sharesId, 
 	let params = await algoClient.getTransactionParams().do();
 	let accounts = [];
 	for (const property in founders) {
-		accounts.push(founders[property].wallet);
+		accounts.push(founders[property].addr);
 	};
 	let note = undefined;
 	let rekeyTo = undefined;
@@ -507,5 +532,67 @@ const distributeShares = async (algoClient, senderAccount, companyId, sharesId, 
 	let tx = await algoClient.sendRawTransaction(signedTxn).do();
 	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 10);
 	console.log("The distribution of shares to founder(s) " + foundersIndexes + " has been done at the transaction " + tx.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
+}
+
+export const distributeRemainShares = async (algoClient, account, data, callback) => {
+	console.log("=== DISTRIBUTE SHARES ===");
+	try {
+		let senderAddr = account.addr;
+		let appId = data.companyId;
+		let params = await algoClient.getTransactionParams().do();
+		let accounts = [data.receiver.addr];
+		let note = undefined;
+		let rekeyTo = undefined;
+		let appArgs = [];
+		let operation = "distribute_remain_shares";
+		appArgs.push(EncodeBytes(operation));
+		appArgs.push(encodeUint64(data.receiver.amount));
+		let foreignApps = undefined;
+		let foreignAssets = [data.sharesId];
+		let lease = undefined;
+		let boxes = undefined;
+		let optin = await checkOptinStatus(algoClient, data.receiver.addr, data.sharesId);
+		if (!optin) {
+			await optinToAsset(algoClient, data.receiver, data.sharesId);
+		};
+		let distributeRemainShares = algosdk.makeApplicationNoOpTxn(senderAddr,
+			params,
+			appId,
+			appArgs,
+			accounts,
+			foreignApps,
+			foreignAssets,
+			note,
+			lease,
+			rekeyTo,
+			boxes);
+		let signedTxn = distributeRemainShares.signTxn(account.sk);
+		// Submit the transaction
+		let tx = await algoClient.sendRawTransaction(signedTxn).do();
+		let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 10);
+		console.log(data.receiver.amount + " shares (" + data.sharesId +  ") have been distributed to the account " + data.receiver.addr + " at the transaction " + tx.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
+		let sharesBalance = await getSharesBalance(algoClient, accounts[0], foreignAssets[0]);
+		callback(null, sharesBalance);
+	} catch (err) {
+		console.log(err);
+		callback(err, null);
+	}
+}
+
+const getSharesBalance = async (algoClient, account, sharesId) => {
+	let accountAssetInfo = await algoClient.accountAssetInformation(account, sharesId).do();
+	let sharesBalance = accountAssetInfo['asset-holding'].amount;
+	return sharesBalance;
+}
+
+const checkOptinStatus = async (algoClient, accountAddr, assetId) => {
+	let accountInfo = await algoClient.accountInformation(accountAddr).do();
+	let assetsInfo = accountInfo["assets"];
+	for (const property in assetsInfo){
+        if (assetId == assetsInfo[property]['asset-id']){
+          return true
+        };
+      };
+	return false;
 }
 

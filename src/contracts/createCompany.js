@@ -2,23 +2,23 @@ const createCompany = `#pragma version 8
 txn ApplicationID
 int 0
 ==
-bnz main_l23
+bnz main_l25
 txn OnCompletion
 int DeleteApplication
 ==
-bnz main_l22
+bnz main_l24
 txn OnCompletion
 int UpdateApplication
 ==
-bnz main_l21
+bnz main_l23
 txn OnCompletion
 int OptIn
 ==
-bnz main_l20
+bnz main_l22
 txn OnCompletion
 int CloseOut
 ==
-bnz main_l19
+bnz main_l21
 txn OnCompletion
 int NoOp
 ==
@@ -28,47 +28,48 @@ main_l7:
 txna ApplicationArgs 0
 byte "add_founders"
 ==
-bnz main_l18
+bnz main_l20
 txna ApplicationArgs 0
 byte "mint_coins"
 ==
-bnz main_l17
+bnz main_l19
 txna ApplicationArgs 0
 byte "mint_shares"
 ==
-bnz main_l16
+bnz main_l18
 txna ApplicationArgs 0
 byte "deposit_coins"
 ==
-bnz main_l15
+bnz main_l17
 txna ApplicationArgs 0
 byte "distribute_shares"
 ==
-bnz main_l13
+bnz main_l16
+txna ApplicationArgs 0
+byte "distribute_remain_shares"
+==
+bnz main_l14
 err
-main_l13:
-callsub distributeshares_10
 main_l14:
-int 0
-return
+callsub postcreatedistributeshares_12
 main_l15:
-callsub depositcoins_11
-b main_l14
+int 0
+return
 main_l16:
-callsub mintshares_7
-b main_l14
+callsub oncreatedistributeshares_10
+b main_l15
 main_l17:
-callsub mintcoins_6
-b main_l14
+callsub oncreatedepositcoins_11
+b main_l15
 main_l18:
-callsub addfounders_2
-b main_l14
+callsub oncreatemintshares_7
+b main_l15
 main_l19:
-int 0
-return
+callsub oncreatemintcoins_6
+b main_l15
 main_l20:
-int 0
-return
+callsub oncreateaddfounders_2
+b main_l15
 main_l21:
 int 0
 return
@@ -76,6 +77,12 @@ main_l22:
 int 0
 return
 main_l23:
+int 0
+return
+main_l24:
+int 0
+return
+main_l25:
 callsub oncreate_1
 int 1
 return
@@ -158,8 +165,8 @@ int 0
 app_global_put
 retsub
 
-// add_founders
-addfounders_2:
+// on_create_add_founders
+oncreateaddfounders_2:
 byte "number_of_founder(s)"
 app_global_get
 store 0
@@ -173,11 +180,11 @@ int 0
 assert
 int 0
 store 2
-addfounders_2_l1:
+oncreateaddfounders_2_l1:
 load 2
 int 1
 <
-bnz addfounders_2_l5
+bnz oncreateaddfounders_2_l5
 byte "founders_added"
 app_global_get
 int 0
@@ -191,11 +198,11 @@ int 1
 assert
 int 1
 store 1
-addfounders_2_l3:
+oncreateaddfounders_2_l3:
 load 1
 txn NumAppArgs
 <
-bz addfounders_2_l6
+bz oncreateaddfounders_2_l6
 load 1
 callsub convertuinttobytes_0
 load 1
@@ -205,8 +212,8 @@ load 1
 int 1
 +
 store 1
-b addfounders_2_l3
-addfounders_2_l5:
+b oncreateaddfounders_2_l3
+oncreateaddfounders_2_l5:
 load 2
 gtxns RekeyTo
 global ZeroAddress
@@ -216,8 +223,8 @@ load 2
 int 1
 +
 store 2
-b addfounders_2_l1
-addfounders_2_l6:
+b oncreateaddfounders_2_l1
+oncreateaddfounders_2_l6:
 byte "founders_added"
 int 1
 app_global_put
@@ -302,8 +309,8 @@ itxn_field Applications
 itxn_submit
 retsub
 
-// mint_coins
-mintcoins_6:
+// on_create_mint_coins
+oncreatemintcoins_6:
 global GroupSize
 int 1
 ==
@@ -314,11 +321,11 @@ int 0
 assert
 int 0
 store 15
-mintcoins_6_l1:
+oncreatemintcoins_6_l1:
 load 15
 int 1
 <
-bz mintcoins_6_l3
+bz oncreatemintcoins_6_l3
 load 15
 gtxns RekeyTo
 global ZeroAddress
@@ -328,8 +335,8 @@ load 15
 int 1
 +
 store 15
-b mintcoins_6_l1
-mintcoins_6_l3:
+b oncreatemintcoins_6_l1
+oncreatemintcoins_6_l3:
 txna Applications 1
 store 7
 txna Accounts 1
@@ -394,8 +401,8 @@ app_global_put
 int 1
 return
 
-// mint_shares
-mintshares_7:
+// on_create_mint_shares
+oncreatemintshares_7:
 global GroupSize
 int 1
 ==
@@ -406,11 +413,11 @@ int 0
 assert
 int 0
 store 34
-mintshares_7_l1:
+oncreatemintshares_7_l1:
 load 34
 int 1
 <
-bz mintshares_7_l3
+bz oncreatemintshares_7_l3
 load 34
 gtxns RekeyTo
 global ZeroAddress
@@ -420,8 +427,8 @@ load 34
 int 1
 +
 store 34
-b mintshares_7_l1
-mintshares_7_l3:
+b oncreatemintshares_7_l1
+oncreatemintshares_7_l3:
 txna ApplicationArgs 1
 store 29
 txna ApplicationArgs 2
@@ -508,8 +515,8 @@ load 46
 checkassetsholding_9_l5:
 retsub
 
-// distribute_shares
-distributeshares_10:
+// on_create_distribute_shares
+oncreatedistributeshares_10:
 global GroupSize
 int 1
 ==
@@ -520,11 +527,11 @@ int 0
 assert
 int 0
 store 39
-distributeshares_10_l1:
+oncreatedistributeshares_10_l1:
 load 39
 int 1
 <
-bnz distributeshares_10_l11
+bnz oncreatedistributeshares_10_l11
 int 0
 store 36
 txna Assets 0
@@ -538,13 +545,13 @@ txn NumAccounts
 int 1
 +
 store 38
-distributeshares_10_l3:
+oncreatedistributeshares_10_l3:
 load 38
 txn NumAccounts
 int 2
 *
 <=
-bnz distributeshares_10_l10
+bnz oncreatedistributeshares_10_l10
 load 35
 byte "shares_id"
 app_global_get
@@ -564,18 +571,18 @@ int 1
 assert
 int 1
 store 38
-distributeshares_10_l5:
+oncreatedistributeshares_10_l5:
 load 38
 txn NumAccounts
 <=
-bnz distributeshares_10_l9
+bnz oncreatedistributeshares_10_l9
 int 1
 store 38
-distributeshares_10_l7:
+oncreatedistributeshares_10_l7:
 load 38
 txn NumAccounts
 <=
-bz distributeshares_10_l12
+bz oncreatedistributeshares_10_l12
 load 35
 load 38
 txn NumAccounts
@@ -589,8 +596,8 @@ load 38
 int 1
 +
 store 38
-b distributeshares_10_l7
-distributeshares_10_l9:
+b oncreatedistributeshares_10_l7
+oncreatedistributeshares_10_l9:
 load 38
 txnas ApplicationArgs
 app_global_get
@@ -610,8 +617,8 @@ load 38
 int 1
 +
 store 38
-b distributeshares_10_l5
-distributeshares_10_l10:
+b oncreatedistributeshares_10_l5
+oncreatedistributeshares_10_l10:
 load 36
 load 38
 txnas ApplicationArgs
@@ -622,8 +629,8 @@ load 38
 int 1
 +
 store 38
-b distributeshares_10_l3
-distributeshares_10_l11:
+b oncreatedistributeshares_10_l3
+oncreatedistributeshares_10_l11:
 load 39
 gtxns RekeyTo
 global ZeroAddress
@@ -633,13 +640,13 @@ load 39
 int 1
 +
 store 39
-b distributeshares_10_l1
-distributeshares_10_l12:
+b oncreatedistributeshares_10_l1
+oncreatedistributeshares_10_l12:
 int 1
 return
 
-// deposit_coins
-depositcoins_11:
+// on_create_deposit_coins
+oncreatedepositcoins_11:
 txna Accounts 1
 store 48
 txna Assets 0
@@ -675,6 +682,71 @@ assert
 load 49
 load 50
 load 48
+callsub companysendtokens_8
+int 1
+return
+
+// post_create_distribute_shares
+postcreatedistributeshares_12:
+global GroupSize
+int 1
+==
+txn GroupIndex
+int 0
+==
+&&
+assert
+int 0
+store 55
+postcreatedistributeshares_12_l1:
+load 55
+int 1
+<
+bz postcreatedistributeshares_12_l3
+load 55
+gtxns RekeyTo
+global ZeroAddress
+==
+assert
+load 55
+int 1
++
+store 55
+b postcreatedistributeshares_12_l1
+postcreatedistributeshares_12_l3:
+txna Accounts 1
+store 51
+txna ApplicationArgs 1
+btoi
+store 53
+txna Assets 0
+store 52
+byte "sender"
+global CurrentApplicationAddress
+load 52
+callsub checkassetsholding_9
+store 54
+load 52
+byte "shares_id"
+app_global_get
+==
+load 54
+load 53
+>=
+&&
+byte "receiver"
+load 51
+load 52
+callsub checkassetsholding_9
+&&
+txn NumAppArgs
+int 2
+==
+&&
+assert
+load 52
+load 53
+load 51
 callsub companysendtokens_8
 int 1
 return

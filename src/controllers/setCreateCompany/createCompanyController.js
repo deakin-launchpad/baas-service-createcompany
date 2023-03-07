@@ -6,8 +6,13 @@ import { connectToAlgorand, getBlockchainAccount, deployVault, deployCompany, re
 /**
  * 
  * @param {Object} payloadData
- * @param {String} payloadData.vaultName
- * @param {Number} payloadData.funding
+ * @param {String} payloadData.jobID
+ * @param {String} payloadData.datashopServerAddress
+ * @param {Object} payloadData.dataFileURL
+ * @param {String} payloadData.dataFileURL.url
+ * @param {Object} payloadData.dataFileURL.json
+ * @param {String} payloadData.dataFileURL.json.vaultName
+ * @param {Number} payloadData.dataFileURL.json.vaultFunding
  * @param {Account} account
  * @param {ClientInstance} algoClient
  * @param {Function} callback 
@@ -33,13 +38,19 @@ const createVault = (payloadData, account, algoClient, callback) => {
 /**
  * 
  * @param {Object} payloadData
- * @param {String} payloadData.companyName
- * @param {Number} payloadData.companyFunding
- * @param {Object[]} payloadData.founders
- * @param {Object[]} payloadData.shares
- * @param {Object[]} payloadData.coins
- * @param {String} payloadData.vaultName
- * @param {Number} payloadData.vaultFunding
+ * @param {String} payloadData.jobID
+ * @param {String} payloadData.datashopServerAddress
+ * @param {Object} payloadData.dataFileURL
+ * @param {String} payloadData.dataFileURL.url
+ * @param {Object} payloadData.dataFileURL.json
+ * @param {String} payloadData.dataFileURL.json.companyName
+ * @param {Number} payloadData.dataFileURL.json.companyFunding
+ * @param {Object[]} payloadData.dataFileURL.json.founders
+ * @param {Object[]} payloadData.dataFileURL.json.shares
+ * @param {Object[]} payloadData.dataFileURL.json.coins
+ * @param {String} payloadData.dataFileURL.json.vaultName
+ * @param {Number} payloadData.dataFileURL.json.vaultFunding
+ * @param {Function} callback
  */
 const createCompany = async (payloadData) => {
 	const data = payloadData.dataFileURL.json;
