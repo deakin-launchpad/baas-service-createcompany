@@ -123,6 +123,12 @@ const stringToLogicSig = (logicSigString) => {
 	return algosdk.LogicSig.fromByte(logicSigBytes);
 }
 
+// const stringToLogicSig = (logicSigString) => {
+// 	let logicSigArray = logicSigString.split(",");
+// 	let logicSigBytes = new Uint8Array(logicSigArray);
+// 	return algosdk.LogicSigAccount.fromByte(logicSigBytes);
+// }
+
 export const deployVault = async (algoClient, account, data, callback) => {
 	console.log("=== DEPLOY VAULT CONTRACT ===");
 	try {
@@ -191,8 +197,8 @@ export const deployCompany = async (algoClient, account, data, callback) => {
 
 		let localInts = 0;
 		let localBytes = 0;
-		let globalInts = 32;
-		let globalBytes = 32;
+		let globalInts = 7;
+		let globalBytes = 57;
 
 		let accounts = undefined;
 		let foreignApps = undefined;
@@ -230,13 +236,16 @@ export const deployCompany = async (algoClient, account, data, callback) => {
 		console.log("The application ID is: " + appId);
 		let appAddr = algosdk.getApplicationAddress(appId);
 		console.log("The application wallet is: " + appAddr);
-		await payAlgod(algoClient, account, appAddr, parseInt(data.funding));
+		let founders;
+		for (let i = 0; i < data.founders.length; i += 10){
+				founders = data.founders.slice(i, i+10)
+				await addFounders(algoClient, account, appId, founders);
+		};
 		await addFounders(algoClient, account, appId, data.founders);
 		let sharesId = await mintShares(algoClient, account, appId, data.shares);
 		for (let i = 0; i < data.founders.length; i++) {
 			await optinToAsset(algoClient, data.founders[i], sharesId);
 		};
-		let founders;
 		let foundersId = (Array.from(Array(data.founders.length), (_, index) => index + 1)).map(String);
 		let indexes;
 		for (let i = 0; i < data.founders.length; i += 4) {
@@ -283,7 +292,7 @@ const payAlgod = async (algoClient, senderAccount, receiver, amount) => {
 }
 
 const addFounders = async (algoClient, senderAccount, companyId, foundersInfoArray) => {
-	console.log("=== add company founders (up to 15) ===");
+	console.log("=== add company founders (up to 10 each transaction) ===");
 	let senderAddr = senderAccount.addr;
 	let params = await algoClient.getTransactionParams().do();
 	let operation = "add_founders"
@@ -315,7 +324,7 @@ const addFounders = async (algoClient, senderAccount, companyId, foundersInfoArr
 	// Submit the transaction
 	let tx = await algoClient.sendRawTransaction(signedTxn).do();
 	let confirmedTxn = await algosdk.waitForConfirmation(algoClient, tx.txId, 4);
-	console.log(" Company has added all founders in the transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
+	console.log(" Company has added " + foundersInfoArray.length + " founders in the transaction " + tx.txId + " confirmed in round " + confirmedTxn["confirmed-round"]);
 }
 
 const mintShares = async (algoClient, senderAccount, companyId, sharesInfoArray) => {
@@ -395,6 +404,8 @@ const optinToAsset = async (algoClient, account, assetId) => {
 	let closeRemainderTo = undefined;
 	let revocationTarget = undefined;
 	let note = undefined;
+	// let note = EncodeBytes("password");
+	console.log(note);
 	let rekeyTo = undefined;
 	let optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParams(
 		accountAddr,
