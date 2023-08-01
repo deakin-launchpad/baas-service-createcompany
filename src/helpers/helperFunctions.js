@@ -242,7 +242,7 @@ export const deployCompany = async (algoClient, account, data, callback) => {
 		for (let i = 0; i < data.founders.length; i += 4) {
 			founders = data.founders.slice(i, i + 4);
 			indexes = foundersId.slice(i, i + 4);
-			await distributeShares(algoClient, account, appId, sharesId, founders, indexes);
+			await distributeShares(algoClient, account, appId, sharesId, founders, indexes, data.shares.decimal);
 		}
 		const vaultData = {
 			address: data.vaultAddress,
@@ -493,7 +493,7 @@ const depositCoins = async (algoClient, senderAccount, companyId, coinsId, vault
 	console.log("The deposit of coins has been finished at the transaction " + tx.txId + ", confirmed in round " + confirmedTxn["confirmed-round"]);
 }
 
-const distributeShares = async (algoClient, senderAccount, companyId, sharesId, founders, foundersIndexes) => {
+const distributeShares = async (algoClient, senderAccount, companyId, sharesId, founders, foundersIndexes, sharesDecimals) => {
 	let senderAddr = senderAccount.addr;
 	let params = await algoClient.getTransactionParams().do();
 	let accounts = [];
@@ -509,7 +509,8 @@ const distributeShares = async (algoClient, senderAccount, companyId, sharesId, 
 		appArgs.push(EncodeBytes(foundersIndexes[property]));
 	};
 	for (const property in founders) {
-		appArgs.push(encodeUint64(founders[property].shares));
+		console.log(founders[property].shares ** founders[property].decimals)
+		appArgs.push(encodeUint64(founders[property].shares * (10 ** sharesDecimals)));
 	};
 	let foreignApps = undefined;
 	let foreignAssets = [];
